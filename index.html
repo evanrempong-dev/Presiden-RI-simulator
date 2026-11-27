@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>The Dynasty — True Pixel Art Donghua</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    * { box-sizing: border-box; user-select: none; -webkit-user-select: none; }
+    body {
+      margin: 0;
+      background: #141c1b;
+      color: #24332d;
+      font-family: 'Courier New', Courier, monospace;
+      overflow-x: hidden;
+    }
+    canvas {
+      image-rendering: -moz-crisp-edges;
+      image-rendering: -webkit-crisp-edges;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+      touch-action: none;
+    }
+    .card-ui {
+      background: #fdf9f0;
+      border: 3px solid #235c48;
+      box-shadow: 0 4px 0 rgba(0,0,0,0.35);
+    }
+    .btn-gold {
+      background: #e6b445;
+      color: #261a05;
+      border: 2px solid #8c6211;
+      box-shadow: 0 3px 0 #8c6211;
+      font-weight: 800;
+    }
+    .btn-gold:active {
+      transform: translateY(2px);
+      box-shadow: 0 1px 0 #8c6211;
+    }
+    .orb-btn {
+      width: 76px;
+      height: 76px;
+      border-radius: 9999px;
+      background: #235c48;
+      border: 3px solid #e6b445;
+      box-shadow: 0 4px 0 #12362a;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 11px;
+      line-height: 1.15;
+    }
+    .orb-btn:active {
+      transform: translateY(2px);
+      box-shadow: 0 2px 0 #12362a;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col items-center p-2 md:p-4">
+  <div class="w-full max-w-md card-ui rounded-2xl overflow-hidden mb-2">
+    <div class="bg-[#235c48] text-white px-3.5 py-2 flex justify-between items-center">
+      <div>
+        <div class="font-extrabold text-sm tracking-wide flex items-center gap-2">
+          <span>🏮 THE DYNASTY</span>
+          <span id="kode-badge" class="bg-amber-400 text-stone-950 text-[10px] px-2 py-0.5 rounded-full font-black">LOKAL</span>
+        </div>
+        <div id="realm-sub" class="text-[11px] text-emerald-100">Qi Condensation · Lv.1 · Alun-Alun</div>
+      </div>
+      <button onclick="openModal('auth')" class="btn-gold px-2.5 py-1 rounded-lg text-[11px]">🔑 Kode</button>
+    </div>
+
+    <div class="bg-[#f3ead8] px-3.5 py-1.5 flex justify-between items-center text-xs font-bold">
+      <div class="flex gap-3">
+        <span>🪙 <b id="ui-gold" class="text-amber-700">250</b></span>
+        <span>🌿 <b id="ui-herb" class="text-emerald-700">3</b></span>
+        <span>🪵 <b id="ui-wood" class="text-amber-900">1</b></span>
+        <span>✨ <b id="ui-exp" class="text-teal-700">0/100</b></span>
+      </div>
+      <div class="flex gap-1">
+        <button onclick="setZone('square')" class="px-2 py-0.5 rounded bg-[#235c48] text-white text-[10px] font-bold">Alun-Alun</button>
+        <button onclick="setZone('farm')" class="px-2 py-0.5 rounded bg-amber-700 text-white text-[10px] font-bold">Lahan</button>
+        <button onclick="setZone('forest')" class="px-2 py-0.5 rounded bg-stone-800 text-white text-[10px] font-bold">Hutan</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="w-full max-w-md card-ui rounded-2xl p-2 bg-[#e8dcc4] relative">
+    <div class="relative rounded-xl overflow-hidden border-2 border-[#3a2a1d]">
+      <!-- Displayed canvas (upscaled crisp pixel art) -->
+      <canvas id="screenCanvas" width="420" height="520" class="w-full block"></canvas>
+
+      <div id="toast" class="hidden absolute top-3 left-1/2 -translate-x-1/2 bg-[#235c48] text-amber-200 border-2 border-amber-400 px-3 py-1 rounded-xl text-xs font-extrabold shadow z-20 whitespace-nowrap"></div>
+
+      <!-- Top-Right Menu Buttons (Pasar, Misi, Wardrobe) -->
+      <div class="absolute top-3 right-2.5 flex flex-col gap-2 z-20">
+        <button onclick="openModal('market')" class="w-10 h-10 rounded-xl bg-[#fdf9f0] border-2 border-[#235c48] shadow flex flex-col items-center justify-center text-[10px] font-extrabold text-[#235c48]">
+          🛒<span>Pasar</span>
+        </button>
+        <button onclick="openModal('quest')" class="w-10 h-10 rounded-xl bg-[#fdf9f0] border-2 border-[#235c48] shadow flex flex-col items-center justify-center text-[10px] font-extrabold text-[#235c48]">
+          📜<span>Misi</span>
+        </button>
+        <button onclick="openModal('wardrobe')" class="w-10 h-10 rounded-xl bg-[#fdf9f0] border-2 border-[#235c48] shadow flex flex-col items-center justify-center text-[10px] font-extrabold text-[#235c48]">
+          👘<span>Baju</span>
+        </button>
+      </div>
+
+      <!-- Bottom-Left D-Pad -->
+      <div class="absolute bottom-3 left-3 grid grid-cols-3 gap-1 w-28 h-28 z-20">
+        <div></div>
+        <button ontouchstart="hold('up',1)" ontouchend="hold('up',0)" onmousedown="hold('up',1)" onmouseup="hold('up',0)" class="bg-[#fdf9f0]/95 border-2 border-[#235c48] rounded-lg text-xs font-black text-[#235c48]">▲</button>
+        <div></div>
+        <button ontouchstart="hold('left',1)" ontouchend="hold('left',0)" onmousedown="hold('left',1)" onmouseup="hold('left',0)" class="bg-[#fdf9f0]/95 border-2 border-[#235c48] rounded-lg text-xs font-black text-[#235c48]">◀</button>
+        <div class="bg-[#235c48]/25 rounded-lg"></div>
+        <button ontouchstart="hold('right',1)" ontouchend="hold('right',0)" onmousedown="hold('right',1)" onmouseup="hold('right',0)" class="bg-[#fdf9f0]/95 border-2 border-[#235c48] rounded-lg text-xs font-black text-[#235c48]">▶</button>
+        <div></div>
+        <button ontouchstart="hold('down',1)" ontouchend="hold('down',0)" onmousedown="hold('down',1)" onmouseup="hold('down',0)" class="bg-[#fdf9f0]/95 border-2 border-[#235c48] rounded-lg text-xs font-black text-[#235c48]">▼</button>
+        <div></div>
+      </div>
+
+      <!-- Bottom-Right Contextual Orb -->
+      <button id="orb" onclick="act()" class="orb-btn absolute bottom-3.5 right-3.5 z-20">
+        <span id="orb-ico" class="text-lg">🌱</span>
+        <span id="orb-txt">Tanam<br><small>[E]</small></span>
+      </button>
+    </div>
+
+    <div class="mt-2 px-1 flex justify-between items-center text-[11px] font-bold text-[#2b3b35]">
+      <span>WASD / Panah / D-Pad · Aksi: E</span>
+      <button onclick="breakthrough()" class="px-2 py-0.5 rounded bg-[#235c48] text-amber-300">⚡ Terobos</button>
+    </div>
+  </div>
+
+  <!-- Modal -->
+  <div id="modal" class="hidden fixed inset-0 bg-black/65 flex items-center justify-center p-3 z-50">
+    <div class="w-full max-w-sm card-ui rounded-2xl overflow-hidden max-h-[82vh] flex flex-col">
+      <div class="bg-[#235c48] text-white px-4 py-2.5 flex justify-between items-center">
+        <span id="m-title" class="font-extrabold text-sm">Menu</span>
+        <button onclick="closeModal()" class="text-lg font-bold leading-none">✕</button>
+      </div>
+      <div id="m-body" class="p-4 overflow-y-auto text-xs space-y-2.5"></div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getDatabase, ref, set, get, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+    const app = initializeApp({
+      databaseURL: "https://presiden-ri-simulator-default-rtdb.asia-southeast1.firebasedatabase.app"
+    });
+    const db = getDatabase(app);
+
+    // Native low-res pixel buffer (2x scale -> 420x520 crisp pixels)
+    const SCALE = 2;
+    const pixCanvas = document.createElement("canvas");
+    pixCanvas.width = 210;
+    pixCanvas.height = 260;
+    const pctx = pixCanvas.getContext("2d");
+    pctx.imageSmoothingEnabled = false;
+
+    const screenCanvas = document.getElementById("screenCanvas");
+    const sctx = screenCanvas.getContext("2d");
+    sctx.imageSmoothingEnabled = false;
+
+    const REALMS = ["Qi Condensation", "Foundation Est.", "Golden Core", "Nascent Soul"];
+    const HATS = [
+      { id: "none", name: "Sanggul Polos", price: 0, col: "#2b211b" },
+      { id: "caping", name: "Caping Bambu", price: 80, col: "#d88a3c" },
+      { id: "crown", name: "Mahkota Giok", price: 150, col: "#f2c94c" }
+    ];
+    const ROBES = [
+      { id: "jade", name: "Jubah Giok", price: 0, col: "#2b8a6c" },
+      { id: "vermilion", name: "Jubah Merah", price: 90, col: "#c94a38" },
+      { id: "azure", name: "Jubah Langit", price: 130, col: "#4a7ec4" }
+    ];
+
+    const DEFAULT_P = {
+      code: "",
+      name: "Raka",
+      realmIdx: 0,
+      exp: 0,
+      gold: 250,
+      seeds: 6,
+      herbs: 3,
+      wood: 1,
+      questDone: 0,
+      hat: "none",
+      robe: "jade",
+      zone: "square",
+      x: 105,
+      y: 175,
+      sitting: false,
+      plots: Array.from({ length: 12 }, (_, i) => ({
+        x: 42 + (i % 4) * 32,
+        y: 82 + Math.floor(i / 4) * 32,
+        stage: 0
+      })),
+      treeHp: 3
+    };
+
+    let p = JSON.parse(localStorage.getItem("dynasty_mixel_save")) || structuredClone(DEFAULT_P);
+    let activeCode = localStorage.getItem("dynasty_mixel_code") || "";
+    let dir = { up: 0, down: 0, left: 0, right: 0 };
+    let tick = 0;
+
+    // 14x16 Chibi Pixel Matrix (. = transparent, O = outline, H = hair, S = skin, R = robe, A = accent)
+    const CHIBI_SPRITE = [
+      "....OOOOOO....",
+      "...OHHHHHHHO..",
+      "..OHHHHHHHHHHO",
+      "..OHHSSSSSSHHO",
+      "..OHSSESSESSHO",
+      "..OHSSSSSSSSHO",
+      "...OSSSSSSSSO.",
+      "....OOOOOOOO..",
+      "...OORRRRRROO.",
+      "..ORRRARRRRRO.",
+      "..ORRRRRRRRRRO",
+      "..OORRRRRRROO.",
+      "....OO....OO..",
+      "...OOO....OOO."
+    ];
+
+    function drawChibiPixel(cx, cy, label, robeHex, hatId, bobY) {
+      const x0 = Math.round(cx - 7);
+      const y0 = Math.round(cy - 14 + bobY);
+
+      // Ground shadow (10x3 pixel)
+      pctx.fillStyle = "rgba(38, 28, 22, 0.25)";
+      pctx.fillRect(Math.round(cx - 5), Math.round(cy + 1), 10, 3);
+
+      for (let r = 0; r < CHIBI_SPRITE.length; r++) {
+        for (let c = 0; c < CHIBI_SPRITE[r].length; c++) {
+          const ch = CHIBI_SPRITE[r][c];
+          if (ch === ".") continue;
+          if (ch === "O") pctx.fillStyle = "#261c16";
+          else if (ch === "H") pctx.fillStyle = "#2b211b";
+          else if (ch === "S") pctx.fillStyle = "#fbd8a7";
+          else if (ch === "E") pctx.fillStyle = "#261c16";
+          else if (ch === "R") pctx.fillStyle = robeHex;
+          else if (ch === "A") pctx.fillStyle = "#f2c94c";
+          pctx.fillRect(x0 + c, y0 + r, 1, 1);
+        }
+      }
+
+      // Hat overlay
+      if (hatId === "caping") {
+        pctx.fillStyle = "#261c16";
+        pctx.fillRect(Math.round(cx - 9), y0 - 1, 18, 4);
+        pctx.fillStyle = "#d88a3c";
+        pctx.fillRect(Math.round(cx - 8), y0, 16, 2);
+        pctx.fillRect(Math.round(cx - 3), y0 - 2, 6, 2);
+      } else if (hatId === "crown") {
+        pctx.fillStyle = "#261c16";
+        pctx.fillRect(Math.round(cx - 5), y0 - 3, 10, 4);
+        pctx.fillStyle = "#f2c94c";
+        pctx.fillRect(Math.round(cx - 4), y0 - 2, 8, 2);
+      }
+
+      // Crisp name tag on screen canvas
+      const sx = Math.round(cx * SCALE);
+      const sy = Math.round((cy - 18 + bobY) * SCALE);
+      sctx.font = "bold 10px monospace";
+      sctx.textAlign = "center";
+      const w = Math.max(36, sctx.measureText(label).width + 8);
+      sctx.fillStyle = "rgba(253, 249, 240, 0.9)";
+      sctx.fillRect(sx - w / 2, sy - 10, w, 13);
+      sctx.fillStyle = "#23332d";
+      sctx.fillText(label, sx, sy);
+      sctx.textAlign = "left";
+    }
+
+    function toast(msg) {
+      const el = document.getElementById("toast");
+      el.innerText = msg;
+      el.classList.remove("hidden");
+      clearTimeout(toast._t);
+      toast._t = setTimeout(() => el.classList.add("hidden"), 2000);
+    }
+
+    async function save(cloud = true) {
+      localStorage.setItem("dynasty_mixel_save", JSON.stringify(p));
+      syncUI();
+      if (cloud && activeCode) {
+        await set(ref(db, `dynasty_players/${activeCode}`), {
+          ...p,
+          kode: activeCode,
+          nama: p.name,
+          emas: p.gold,
+          pasukan: (p.realmIdx + 1) * 50,
+          wilayah: p.questDone + 1,
+          log: [`[WEB] ${p.name} · Gold ${p.gold} · Herb ${p.herbs}`]
+        });
+      }
+    }
+
+    function syncUI() {
+      const zName = { square: "Alun-Alun", farm: "Lahan Roh", forest: "Hutan" };
+      document.getElementById("kode-badge").innerText = activeCode || "LOKAL";
+      document.getElementById("realm-sub").innerText = `${REALMS[p.realmIdx]} · Lv.${p.realmIdx + 1} · ${zName[p.zone]}`;
+      document.getElementById("ui-gold").innerText = p.gold;
+      document.getElementById("ui-herb").innerText = p.herbs;
+      document.getElementById("ui-wood").innerText = p.wood;
+      document.getElementById("ui-exp").innerText = `${p.exp}/100`;
+      refreshOrb();
+    }
+
+    window.setZone = async (z) => {
+      p.zone = z;
+      p.sitting = false;
+      p.x = 105;
+      p.y = 195;
+      await save();
+    };
+
+    window.hold = (k, v) => {
+      if (v) p.sitting = false;
+      dir[k] = v;
+    };
+
+    window.addEventListener("keydown", (e) => {
+      if (["w","W","ArrowUp"].includes(e.key)) { p.sitting = false; dir.up = 1; }
+      if (["s","S","ArrowDown"].includes(e.key)) { p.sitting = false; dir.down = 1; }
+      if (["a","A","ArrowLeft"].includes(e.key)) { p.sitting = false; dir.left = 1; }
+      if (["d","D","ArrowRight"].includes(e.key)) { p.sitting = false; dir.right = 1; }
+      if (["e","E"," "].includes(e.key)) act();
+    });
+    window.addEventListener("keyup", (e) => {
+      if (["w","W","ArrowUp"].includes(e.key)) dir.up = 0;
+      if (["s","S","ArrowDown"].includes(e.key)) dir.down = 0;
+      if (["a","A","ArrowLeft"].includes(e.key)) dir.left = 0;
+      if (["d","D","ArrowRight"].includes(e.key)) dir.right = 0;
+    });
+
+    const BENCHES = [{ x: 58, y: 142 }, { x: 152, y: 142 }];
+    const NPCS = [
+      { name: "Dinda", x: 58, y: 112, robe: "#79a83a", msg: "Sore di alun-alun adem ya!" },
+      { name: "Bayu", x: 152, y: 112, robe: "#566873", msg: "Sudah panen Ramuan Roh?" }
+    ];
+
+    function detectAction() {
+      if (p.zone === "square") {
+        for (const b of BENCHES) {
+          if (Math.hypot(p.x - b.x, p.y - b.y) < 22) {
+            return { kind: "sit", b, ico: "🪑", txt: p.sitting ? "Bangun" : "Duduk" };
+          }
+        }
+        for (const n of NPCS) {
+          if (Math.hypot(p.x - n.x, p.y - n.y) < 24) {
+            return { kind: "talk", n, ico: "💬", txt: "Sapa" };
+          }
+        }
+      } else if (p.zone === "farm") {
+        const ripe = p.plots.filter((pl) => pl.stage === 2 && Math.hypot(p.x - (pl.x + 10), p.y - (pl.y + 10)) < 32);
+        if (ripe.length) return { kind: "harvest", ico: "🌾", txt: "Panen" };
+        const empty = p.plots.find((pl) => pl.stage === 0 && Math.hypot(p.x - (pl.x + 10), p.y - (pl.y + 10)) < 24);
+        if (empty && p.seeds > 0) return { kind: "plant", ico: "🌱", txt: "Tanam" };
+      } else if (p.zone === "forest") {
+        if (p.treeHp > 0 && Math.hypot(p.x - 105, p.y - 115) < 38) {
+          return { kind: "chop", ico: "🪓", txt: "Pukul" };
+        }
+      }
+      return { kind: "none", ico: "🏮", txt: "Jalan" };
+    }
+
+    function refreshOrb() {
+      const a = detectAction();
+      document.getElementById("orb-ico").innerText = a.ico;
+      document.getElementById("orb-txt").innerHTML = `${a.txt}<br><small>[E]</small>`;
+    }
+
+    window.act = async () => {
+      const a = detectAction();
+      if (a.kind === "sit") {
+        p.sitting = !p.sitting;
+        if (p.sitting) { p.x = a.b.x; p.y = a.b.y; }
+        toast(p.sitting ? "Duduk santai di bangku." : "Berdiri.");
+      } else if (a.kind === "talk") {
+        p.exp += 8;
+        toast(`${a.n.name}: "${a.n.msg}" (+8 EXP)`);
+      } else if (a.kind === "plant") {
+        let n = 0;
+        for (const pl of p.plots) {
+          if (pl.stage === 0 && p.seeds > 0 && Math.hypot(p.x - (pl.x + 10), p.y - (pl.y + 10)) < 38) {
+            pl.stage = 1; p.seeds--; n++;
+            setTimeout(async () => { pl.stage = 2; await save(false); }, 3000);
+          }
+        }
+        if (n) toast(`Tanam ${n} bibit! Tunggu 3 detik...`);
+      } else if (a.kind === "harvest") {
+        let n = 0;
+        for (const pl of p.plots) {
+          if (pl.stage === 2 && Math.hypot(p.x - (pl.x + 10), p.y - (pl.y + 10)) < 42) {
+            pl.stage = 0; n++;
+          }
+        }
+        if (n) { p.herbs += n * 2; p.exp += n * 6; toast(`Panen Ramuan Roh x${n * 2}!`); }
+      } else if (a.kind === "chop") {
+        p.treeHp--;
+        if (p.treeHp <= 0) {
+          p.wood += 2; p.exp += 15;
+          toast("Pohon Roh tumbang! +2 Kayu & +15 EXP");
+          setTimeout(() => { p.treeHp = 3; }, 7000);
+        } else toast(`Pukul Pohon Roh (${p.treeHp} lagi)`);
+      }
+      await save();
+    };
+
+    window.breakthrough = async () => {
+      if (p.realmIdx >= REALMS.length - 1) return toast("Realm tertinggi!");
+      if (p.exp < 100) return toast("Butuh 100 EXP!");
+      p.exp -= 100; p.realmIdx++;
+      toast(`⚡ Naik ke ${REALMS[p.realmIdx]}!`);
+      await save();
+    };
+
+    window.openModal = (type) => {
+      const m = document.getElementById("modal");
+      const title = document.getElementById("m-title");
+      const body = document.getElementById("m-body");
+      m.classList.remove("hidden");
+
+      if (type === "market") {
+        title.innerText = "🛒 Pasar Sekte";
+        body.innerHTML = `
+          <div class="flex justify-between items-center p-2 bg-white rounded-lg border">
+            <span><b>Bibit Roh x5</b></span>
+            <button onclick="buySeeds()" class="btn-gold px-2.5 py-1 rounded">🪙 50</button>
+          </div>
+          <div class="flex justify-between items-center p-2 bg-white rounded-lg border">
+            <span><b>Jual Ramuan (${p.herbs})</b> · 25g/bh</span>
+            <button onclick="sellHerbs()" class="btn-gold px-2.5 py-1 rounded">Jual</button>
+          </div>
+        `;
+      } else if (type === "quest") {
+        title.innerText = "📜 Permintaan Warga";
+        body.innerHTML = `
+          <div class="p-3 bg-white rounded-lg border space-y-2">
+            <div class="font-bold">Butuh Ramuan Roh x4 (${p.herbs}/4)</div>
+            <div class="text-stone-500">Hadiah: 120 Gold + 35 EXP</div>
+            <button onclick="doQuest()" class="btn-gold w-full py-1.5 rounded">Serahkan</button>
+          </div>
+        `;
+      } else if (type === "wardrobe") {
+        title.innerText = "👘 Wardrobe";
+        body.innerHTML = `
+          <div class="font-bold">Topi</div>
+          ${HATS.map((h) => `<div class="flex justify-between items-center p-2 bg-white rounded border">
+            <span>${h.name}</span>
+            <button onclick="setHat('${h.id}',${h.price})" class="btn-gold px-2 py-0.5 rounded">${p.hat === h.id ? "Dipakai" : (h.price ? `🪙 ${h.price}` : "Pakai")}</button>
+          </div>`).join("")}
+          <div class="font-bold pt-1">Jubah</div>
+          ${ROBES.map((r) => `<div class="flex justify-between items-center p-2 bg-white rounded border">
+            <span>${r.name}</span>
+            <button onclick="setRobe('${r.id}',${r.price})" class="btn-gold px-2 py-0.5 rounded">${p.robe === r.id ? "Dipakai" : (r.price ? `🪙 ${r.price}` : "Pakai")}</button>
+          </div>`).join("")}
+        `;
+      } else if (type === "auth") {
+        title.innerText = "🔑 Kode Akun Permanen";
+        body.innerHTML = `
+          <div class="flex gap-1">
+            <input id="inp-n" value="${p.name}" placeholder="Nama" class="flex-1 px-2 py-1 border rounded bg-white" />
+            <button onclick="regCode()" class="btn-gold px-2.5 py-1 rounded">Daftar</button>
+          </div>
+          <div class="flex gap-1 pt-2 border-t">
+            <input id="inp-c" value="${activeCode}" placeholder="DYN-XXXX" class="flex-1 px-2 py-1 border rounded bg-white uppercase" />
+            <button onclick="logCode()" class="px-2.5 py-1 rounded bg-[#235c48] text-white font-bold">Masuk</button>
+          </div>
+          ${activeCode ? `<div class="p-2 bg-emerald-100 text-emerald-950 font-bold rounded">Kode: ${activeCode}</div>` : ""}
+        `;
+      }
+    };
+
+    window.closeModal = () => document.getElementById("modal").classList.add("hidden");
+    window.buySeeds = async () => { if (p.gold < 50) return toast("Kurang Gold!"); p.gold -= 50; p.seeds += 5; await save(); openModal("market"); };
+    window.sellHerbs = async () => { if (!p.herbs) return toast("Kosong!"); p.gold += p.herbs * 25; p.herbs = 0; await save(); openModal("market"); };
+    window.doQuest = async () => { if (p.herbs < 4) return toast("Butuh 4 Ramuan!"); p.herbs -= 4; p.gold += 120; p.exp += 35; p.questDone++; await save(); openModal("quest"); };
+    window.setHat = async (id, pr) => { if (p.hat !== id && pr && p.gold < pr) return toast("Kurang Gold!"); if (p.hat !== id && pr) p.gold -= pr; p.hat = id; await save(); openModal("wardrobe"); };
+    window.setRobe = async (id, pr) => { if (p.robe !== id && pr && p.gold < pr) return toast("Kurang Gold!"); if (p.robe !== id && pr) p.gold -= pr; p.robe = id; await save(); openModal("wardrobe"); };
+
+    window.regCode = async () => {
+      const nm = document.getElementById("inp-n").value.trim() || "Raka";
+      const code = `DYN-${Math.floor(1000 + Math.random() * 9000)}`;
+      p.name = nm; p.code = code; activeCode = code;
+      localStorage.setItem("dynasty_mixel_code", code);
+      await save(true);
+      openModal("auth");
+      toast(`Kode Permanen: ${code}`);
+    };
+
+    window.logCode = async () => {
+      const code = document.getElementById("inp-c").value.trim().toUpperCase();
+      const snap = await get(ref(db, `dynasty_players/${code}`));
+      if (!snap.exists()) return toast("Kode tidak ada!");
+      activeCode = code;
+      localStorage.setItem("dynasty_mixel_code", code);
+      p = { ...structuredClone(DEFAULT_P), ...snap.val(), code };
+      await save(false);
+      openModal("auth");
+      toast(`Masuk sebagai ${p.name}`);
+    };
+
+    if (activeCode) {
+      onValue(ref(db, `dynasty_players/${activeCode}`), (snap) => {
+        if (!snap.exists()) return;
+        const d = snap.val();
+        if (typeof d.gold === "number") p.gold = d.gold;
+        if (typeof d.exp === "number") p.exp = d.exp;
+        if (typeof d.herbs === "number") p.herbs = d.herbs;
+        if (typeof d.seeds === "number") p.seeds = d.seeds;
+        syncUI();
+      });
+    }
+
+    function render() {
+      const spd = 1.4;
+      let moving = false;
+      if (!p.sitting) {
+        if (dir.up) { p.y -= spd; moving = true; }
+        if (dir.down) { p.y += spd; moving = true; }
+        if (dir.left) { p.x -= spd; moving = true; }
+        if (dir.right) { p.x += spd; moving = true; }
+      }
+      p.x = Math.max(14, Math.min(196, p.x));
+      p.y = Math.max(56, Math.min(244, p.y));
+      if (moving) tick += 0.25;
+
+      // Clear low-res pixel buffer
+      pctx.clearRect(0, 0, 210, 260);
+      sctx.clearRect(0, 0, 420, 520);
+
+      if (p.zone === "square") {
+        // Stone tiles in 20x20 low-res grid
+        pctx.fillStyle = "#cdc7bc";
+        pctx.fillRect(0, 0, 210, 260);
+        pctx.fillStyle = "#b8b1a5";
+        for (let gy = 44; gy < 260; gy += 20) {
+          pctx.fillRect(0, gy, 210, 1);
+        }
+        for (let gx = 0; gx < 210; gx += 20) {
+          pctx.fillRect(gx, 44, 1, 216);
+        }
+        // Hall roof top
+        pctx.fillStyle = "#a86643";
+        pctx.fillRect(0, 0, 210, 44);
+        pctx.fillStyle = "#261c16";
+        pctx.fillRect(0, 43, 210, 2);
+
+        // Fountain
+        pctx.fillStyle = "#8d99a6";
+        pctx.fillRect(88, 102, 34, 24);
+        pctx.fillStyle = "#5bc0eb";
+        pctx.fillRect(92, 106, 26, 16);
+
+        // Benches
+        for (const b of BENCHES) {
+          pctx.fillStyle = "#261c16";
+          pctx.fillRect(b.x - 9, b.y - 3, 18, 7);
+          pctx.fillStyle = "#9c6335";
+          pctx.fillRect(b.x - 8, b.y - 2, 16, 5);
+        }
+
+        // NPCs
+        for (const n of NPCS) drawChibiPixel(n.x, n.y, n.name, n.robe, "none", 0);
+      } else if (p.zone === "farm") {
+        pctx.fillStyle = "#e7be88";
+        pctx.fillRect(0, 0, 210, 260);
+        for (const pl of p.plots) {
+          pctx.fillStyle = "#5c3c24";
+          pctx.fillRect(pl.x - 1, pl.y - 1, 22, 22);
+          pctx.fillStyle = pl.stage === 0 ? "#c49460" : "#8a5a32";
+          pctx.fillRect(pl.x, pl.y, 20, 20);
+          if (pl.stage === 1) {
+            pctx.fillStyle = "#68a32b";
+            pctx.fillRect(pl.x + 8, pl.y + 8, 4, 4);
+          } else if (pl.stage === 2) {
+            pctx.fillStyle = "#2d8a4e";
+            pctx.fillRect(pl.x + 6, pl.y + 5, 8, 10);
+            pctx.fillStyle = "#f2c94c";
+            pctx.fillRect(pl.x + 8, pl.y + 3, 4, 3);
+          }
+        }
+      } else {
+        pctx.fillStyle = "#577346";
+        pctx.fillRect(0, 0, 210, 260);
+        if (p.treeHp > 0) {
+          // Pixel Giant Spirit Tree
+          pctx.fillStyle = "#261c16";
+          pctx.fillRect(98, 104, 14, 18);
+          pctx.fillStyle = "#7d4a27";
+          pctx.fillRect(99, 105, 12, 16);
+
+          pctx.fillStyle = "#261c16";
+          pctx.fillRect(77, 66, 56, 40);
+          pctx.fillStyle = "#e68a4c";
+          pctx.fillRect(79, 68, 52, 36);
+          pctx.fillStyle = "#f2c94c";
+          pctx.fillRect(89, 76, 32, 18);
+        } else {
+          pctx.fillStyle = "#7d4a27";
+          pctx.fillRect(100, 114, 10, 7);
+        }
+      }
+
+      const bob = moving ? Math.sin(tick) * 1.5 : 0;
+      const robeHex = ROBES.find((r) => r.id === p.robe)?.col || "#2b8a6c";
+      drawChibiPixel(p.x, p.y, p.name, robeHex, p.hat, bob);
+
+      // Blit low-res pixel canvas onto 2x display canvas
+      sctx.drawImage(pixCanvas, 0, 0, 210, 260, 0, 0, 420, 520);
+      refreshOrb();
+      requestAnimationFrame(render);
+    }
+
+    syncUI();
+    render();
+  </script>
+</body>
+</html>
